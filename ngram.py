@@ -1,5 +1,6 @@
 __author__ = "Michael J. Suggs // mjsuggs@ncsu.edu"
 
+from random import random
 import string
 from typing import List
 
@@ -15,29 +16,31 @@ class NGram:
         self.ngrams: dict = {}
         self.order: int = n - 1
 
+    def generate(self, numwd: int=20, numsq: int=10) -> List[str]:
+        sequences: List[str] = []
+        for i in range(numsq):
+            sequence: List[str] = self.ngrams[1]  # TODO get pseudorand unigram
+            # TODO select bigram w/ bias for more probable bigrams
+            while len(sequence) <= numwd:
+                # TODO fill the rest of the sequence with trigrams
+                pass
+
+        return sequences
+
     def parse_ngrams(self, n: int):
-        """ TODO doc me!
+        """Updates ngram dict with probabilities for the given n.
 
-        1 = unigram, 2 = bigram, 3 = trigram, ...
-
-        :param n:
+        :param n: 1 = unigram, 2 = bigram, 3 = trigram, ...
         :return:
         """
-        # create entry for 'n'-grams (eg entries in ngrams[1] are unigrams)
-        self.ngrams[n] = {}
-        processed = self.corpus.split(' ')
-        num_words = len(processed)
+        # create table entry for this n (eg entries in ngrams[1] are unigrams)
+        self.ngrams[n]: dict = {}
+        processed: List[str] = self.corpus.split(' ')
+        num_words: int = len(processed)
 
-        # parses unigrams and calculates the frequency for each unique word
-        # TODO will be made redundant => remove
-        # if n == 1:
-        #     for w in set(processed):
-        #         self.ngrams[n][w] = self.corpus.count(w) / num_grams
-        # processes ngrams for n>1
-        # else:
         # set for unique ngrams and the total number of ngrams in the corpus
-        unique = set()
-        num_grams = num_words - n + 1
+        unique: set = set()
+        num_grams: int = num_words - n + 1
 
         # iterate through every group of n consecutive words
         for i in range(n-1, num_words):
@@ -45,6 +48,7 @@ class NGram:
             # i+1 is necessitated due to the exclusive upper bound on range
             ngram = [processed[j] for j in range(i-n+1, i+1)]
             joined = ' '.join(ngram)
+
             # if ngram has been encountered before, skip
             if joined not in unique:
                 # else, new ngram to calculate the probability of
@@ -52,6 +56,7 @@ class NGram:
                 # word is element of interest (c)
                 # hist is list of preceding words [c-1, c-2, ..., c-n+1]
                 word, hist = ngram[-1], list(reversed(ngram[:-1]))
+
                 # build table s.t. ngrams[n][word][c-1][...] has value freq
                 self.ngrams[n][word] = self._nest_dict(
                     self.ngrams[n][word], hist, freq
@@ -103,6 +108,7 @@ class NGram:
         self.corpus = processed
 
     def extend_corpus(self, ext: str):
+        # TODO recalculate all stats
         pass
 
     @classmethod
