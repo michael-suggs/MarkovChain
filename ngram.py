@@ -2,7 +2,7 @@ __author__ = "Michael J. Suggs // mjsuggs@ncsu.edu"
 
 from random import random
 import string
-from typing import List
+from typing import List, Union
 
 
 class NGram:
@@ -27,7 +27,34 @@ class NGram:
 
         return sequences
 
-    def parse_ngrams(self, n: int):
+    # def parse_ngrams(self, n: int) -> None:
+    #     self.ngrams[n] = []
+    #     processed: List[str] = self.corpus.split(' ')
+    #     num_words: int = len(processed)
+    #
+    #     # set for unique ngrams and the total number of ngrams in the corpus
+    #     unique: set = set()
+    #     num_grams: int = num_words - n + 1
+    #
+    #     for i in range(n-1, num_words):
+    #         # build current ngram as [i-n+1, i-n+2, ..., i+1]
+    #         # i+1 is necessitated due to the exclusive upper bound on range
+    #         ngram = [processed[j] for j in range(i-n+1, i+1)]
+    #         joined = ' '.join(ngram)
+    #
+    #         # if ngram has been encountered before, skip
+    #         if joined not in unique:
+    #             # else, new ngram to calculate the probability of
+    #             freq = self.corpus.count(joined) / num_grams
+    #             unique.add(joined)
+    #             self.ngrams[n].append((joined, freq))
+    #             # word is element of interest (c)
+    #             # hist is list of preceding words [c-1, c-2, ..., c-n+1]
+    #             word, hist = ngram[-1], list(reversed(ngram[:-1]))
+    #
+    #     self.ngrams[n] = sorted(self.ngrams[n], key=lambda x: x[1])
+
+    def parse_ngrams(self, n: int) -> None:
         """Updates ngram dict with probabilities for the given n.
 
         :param n: 1 = unigram, 2 = bigram, 3 = trigram, ...
@@ -52,6 +79,7 @@ class NGram:
             # if ngram has been encountered before, skip
             if joined not in unique:
                 # else, new ngram to calculate the probability of
+                unique.add(joined)
                 freq = self.corpus.count(joined) / num_grams
                 # word is element of interest (c)
                 # hist is list of preceding words [c-1, c-2, ..., c-n+1]
@@ -61,26 +89,6 @@ class NGram:
                 self.ngrams[n][word] = self._nest_dict(
                     self.ngrams[n][word], hist, freq
                 )
-
-    def _nest_dict(self, d: dict, keys: List[str], val: float) -> dict or float:
-        """Recursively constructs nested dicts with each key a word in an ngram.
-
-        :param d: the current working dict
-        :param keys: list of preceding words in ngram [c-1, ..., c-n+1]
-        :param val: the probability of a given ngram
-        :return: base case returns val; else, the dict constructed on unwinding
-        """
-        # if no more keys, at the end (beginning) of ngram; assign prob.
-        if not keys:
-            return val
-        # word has been encountered before; pass its dict through to preserve
-        elif keys[0] in d.keys():
-            d[keys[0]] = self._nest_dict(d[keys[0]], keys[1:], val)
-            return d[keys[0]]
-        # word has not been seen in this sequence; pass through blank dict
-        else:
-            d[keys[0]] = self._nest_dict({}, keys[1:], val)
-            return d[keys[0]]
 
 
     def word_prob(self, word: str, cond: List[str]) -> float:
@@ -92,7 +100,7 @@ class NGram:
         """
         pass
 
-    def load_text(self, text: List[str]):
+    def load_text(self, text: List[str]) -> None:
         """Sets model's corpus; if not empty, extends corpus with new docs.
 
         :param text: list of documents to set as the model's corpus
@@ -110,6 +118,35 @@ class NGram:
     def extend_corpus(self, ext: str):
         # TODO recalculate all stats
         pass
+
+    @classmethod
+    def default_stops(cls) -> List[str]:
+        """Loads default stopwords from provided EnglishStopwords.txt file"""
+        with open('EnglishStopwords.txt', 'r') as f:
+            stops = [l for l in f.readlines()]
+        return stops
+
+    @classmethod
+    def _nest_dict(cls, d: dict, keys: List[str], val: float) \
+            -> Union[dict, float]:
+        """Recursively constructs nested dicts with each key a word in an ngram.
+
+        :param d: the current working dict
+        :param keys: list of preceding words in ngram [c-1, ..., c-n+1]
+        :param val: the probability of a given ngram
+        :return: base case returns val; else, the dict constructed on unwinding
+        """
+        # if no more keys, at the end (beginning) of ngram; assign prob.
+        if not keys:
+            return val
+        # word has been encountered before; pass its dict through to preserve
+        elif keys[0] in d.keys():
+            d[keys[0]] = cls._nest_dict(d[keys[0]], keys[1:], val)
+            return d[keys[0]]
+        # word has not been seen in this sequence; pass through blank dict
+        else:
+            d[keys[0]] = cls._nest_dict({}, keys[1:], val)
+            return d[keys[0]]
 
     @classmethod
     def stringify_docs(cls, docs: List[str], stops: List[str]) -> str:
@@ -136,10 +173,3 @@ class NGram:
             ) for t in docs
         ])
         return processed
-
-    @classmethod
-    def default_stops(cls) -> List[str]:
-        """Loads default stopwords from provided EnglishStopwords.txt file"""
-        with open('EnglishStopwords.txt', 'r') as f:
-            stops = [l for l in f.readlines()]
-        return stops
