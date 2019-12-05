@@ -83,17 +83,28 @@ class NGram:
                 )
 
     def generate(self, numwd: int=20, numsq: int=10) -> List[str]:
-        sequences: List[str] = []
+        """Generates numsq sentences of numwd words.
+
+        :param numwd: number of words to generate per sentence
+        :param numsq: number of sentences to generate
+        :return: list of generated sentences
+        """
+        sequences: List[str] = []   # list storing each generated sentence
+
+        # generate the desired number of sentences
         while len(sequences) < numsq:
+            # create a list to store the working sequence and select a unigram
             sequence: List[str] = []
-            unigram = list(choice(list(self.ngrams[1])))
+            unigram = self.roulette_selector(sequence)
             sequence.append(unigram)
 
+            # roulette select a bigram based on the proceeding unigram
             bigram = self.roulette_selector(sequence)
             sequence.append(bigram)
 
+            # generate trigrams until the sentence is finished
             while len(sequence) < numwd:
-                trigram = self.roulette_selector(sequence[-2:])
+                trigram = self.roulette_selector(sequence)
                 sequence.append(trigram)
 
             sequences.append(' '.join(sequence))
@@ -101,27 +112,44 @@ class NGram:
         return sequences
 
     def roulette_selector(self, seq: List[str]=None) -> str:
+        """Randomly selects the next ngram conditioned on proceeding sequence.
+
+        :param seq: the last 2 words (at most) in the generated sequence
+        :return: a semi-randomly generated next word
+        """
+        seq = seq[-2:]  # reduce to last two elements (or less if shorter)
+        # if empty list, pick a pseudorandom unigram
         if not seq:
             return choice(list(self.ngrams[1]))
+
+        # only one element; roulette select a likely applicable bigram
         elif len(seq) == 1:
-            options = sorted([tuple([k,v])
-                              for k,v in self.ngrams[2][seq[0]].items()],
+            options = sorted([tuple([k,v]) for k,v in
+                              self.ngrams[2][seq[0]].items()],
                              key=lambda x: -x[1])
-            return self._roulette_selector(options)
+            next_word = self._roulette_selector(options)
+            return next_word
+
+        # else, consider applicable trigrams and roulette select one
         else:
-            options = sorted([tuple([k,v])
-                              for k,v in self.ngrams[2][seq[0]][seq[1]].items()],
+            options = sorted([tuple([k,v]) for k,v in
+                              self.ngrams[2][seq[0]][seq[1]].items()],
                              key=lambda x: -x[1])
-            return self._roulette_selector(options)
+            next_word = self._roulette_selector(options)
+            return next_word
 
     def _roulette_selector(self, options: List[tuple]) -> str:
+        """Helper that semi-randomly selects from a list of potential words.
+
+        :param options: list of potential next words and their probabilities
+        :return: first word exhausting the random value
+        """
         r = random()
         for tup in options:
             r -= tup[1]
             if r <= 0:
                 return tup[0]
         return options[0][0]
-
 
     def word_prob(self, word: str, cond: List[str]) -> float:
         """Calculates the probability of word conditioned on cond.
