@@ -1,8 +1,11 @@
 __author__ = "Michael J. Suggs // mjsuggs@ncsu.edu"
 
-from random import random
+from random import random, choice
 import string
-from typing import List, Union
+from typing import List, Union, NamedTuple, Tuple
+
+
+# GramFreqTuple = NamedTuple("GramFreqTuple", [('ngram', str), ('freq', float)])
 
 
 class NGram:
@@ -16,19 +19,8 @@ class NGram:
         self.ngrams: dict = {}
         self.order: int = n - 1
 
-    def generate(self, numwd: int=20, numsq: int=10) -> List[str]:
-        sequences: List[str] = []
-        for i in range(numsq):
-            sequence: List[str] = self.ngrams[1]  # TODO get pseudorand unigram
-            # TODO select bigram w/ bias for more probable bigrams
-            while len(sequence) <= numwd:
-                # TODO fill the rest of the sequence with trigrams
-                pass
-
-        return sequences
-
     # def parse_ngrams(self, n: int) -> None:
-    #     self.ngrams[n] = []
+    #     ngrams = []
     #     processed: List[str] = self.corpus.split(' ')
     #     num_words: int = len(processed)
     #
@@ -47,12 +39,12 @@ class NGram:
     #             # else, new ngram to calculate the probability of
     #             freq = self.corpus.count(joined) / num_grams
     #             unique.add(joined)
-    #             self.ngrams[n].append((joined, freq))
+    #             ngrams.append((joined, freq))
     #             # word is element of interest (c)
     #             # hist is list of preceding words [c-1, c-2, ..., c-n+1]
     #             word, hist = ngram[-1], list(reversed(ngram[:-1]))
     #
-    #     self.ngrams[n] = sorted(self.ngrams[n], key=lambda x: x[1])
+    #     self.ngrams[n] = sorted(ngrams, key=lambda x: -x[1])
 
     def parse_ngrams(self, n: int) -> None:
         """Updates ngram dict with probabilities for the given n.
@@ -89,6 +81,46 @@ class NGram:
                 self.ngrams[n][word] = self._nest_dict(
                     self.ngrams[n][word], hist, freq
                 )
+
+    def generate(self, numwd: int=20, numsq: int=10) -> List[str]:
+        sequences: List[str] = []
+        while len(sequences) < numsq:
+            sequence: List[str] = []
+            unigram = list(choice(list(self.ngrams[1])))
+            sequence.append(unigram)
+
+            bigram = self.roulette_selector(sequence)
+            sequence.append(bigram)
+
+            while len(sequence) < numwd:
+                trigram = self.roulette_selector(sequence[-2:])
+                sequence.append(trigram)
+
+            sequences.append(' '.join(sequence))
+
+        return sequences
+
+    def roulette_selector(self, seq: List[str]=None) -> str:
+        if not seq:
+            return choice(list(self.ngrams[1]))
+        elif len(seq) == 1:
+            options = sorted([tuple([k,v])
+                              for k,v in self.ngrams[2][seq[0]].items()],
+                             key=lambda x: -x[1])
+            return self._roulette_selector(options)
+        else:
+            options = sorted([tuple([k,v])
+                              for k,v in self.ngrams[2][seq[0]][seq[1]].items()],
+                             key=lambda x: -x[1])
+            return self._roulette_selector(options)
+
+    def _roulette_selector(self, options: List[tuple]) -> str:
+        r = random()
+        for tup in options:
+            r -= tup[1]
+            if r <= 0:
+                return tup[0]
+        return options[0][0]
 
 
     def word_prob(self, word: str, cond: List[str]) -> float:
