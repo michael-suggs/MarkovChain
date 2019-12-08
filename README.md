@@ -12,7 +12,7 @@ pip3 install -r requirements.txt
 
 ### Libraries Utilized
 
-**nltk:** used to tokenize the input document(s).
+None.
 
 
 ## Instructions

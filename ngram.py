@@ -2,55 +2,52 @@ __author__ = "Michael J. Suggs // mjsuggs@ncsu.edu"
 
 from random import random, choice
 import string
-from typing import List, Union, NamedTuple, Tuple
-
-
-# GramFreqTuple = NamedTuple("GramFreqTuple", [('ngram', str), ('freq', float)])
+from typing import List, Union, Tuple
 
 
 class NGram:
-    # TODO doc me!
+    """Parses ngrams and generates acceptable sentences from a corpus of texts.
 
-    def __init__(self, n: int, stops: List[str]=None, text: List[str]=None):
+    Parsed ngrams are stored in the self.ngrams dictionary, which may have
+    multiple levels of nesting inside. Top-level keys map to ngram length, and
+    all further keys are words parsed from the provided corpus. Each chain
+    of key accesses represents an ngram sequence, with the leaf of a chain
+    giving its probability.
+
+    For example, within self.ngrams[1] is a nested dictionary containing all
+    unigrams parsed from the corpus as its keys with values giving the
+    probability of that unigram appearing within the corpus. For a further
+    example, consider the following trigram: 'four score and'. Within this
+    dictionary, the probability of this sequence appearing can be accessed as
+
+        self.ngrams[3]['four']['score']['and']
+
+    where the value 'and' maps to is the overall probability of this trigram.
+
+    Attributes:
+        stops: A list of stopwords to be excluded from the corpus.
+        corpus: A single string of all provided documents joined together.
+        ngrams: Multilevel nested dictionary, where top-level keys are ints (n)
+            that map to dictionaries of all ngrams of that length.
+    """
+
+    def __init__(self, stops: List[str]=None, text: List[List[str]]=None):
         # TODO doc me!
         self.stops: List[str] = stops if stops is not None \
             else self.default_stops()
         self.corpus: str = self.stringify_docs(text, self.stops)
         self.ngrams: dict = {}
-        self.order: int = n - 1
-
-    # def parse_ngrams(self, n: int) -> None:
-    #     ngrams = []
-    #     processed: List[str] = self.corpus.split(' ')
-    #     num_words: int = len(processed)
-    #
-    #     # set for unique ngrams and the total number of ngrams in the corpus
-    #     unique: set = set()
-    #     num_grams: int = num_words - n + 1
-    #
-    #     for i in range(n-1, num_words):
-    #         # build current ngram as [i-n+1, i-n+2, ..., i+1]
-    #         # i+1 is necessitated due to the exclusive upper bound on range
-    #         ngram = [processed[j] for j in range(i-n+1, i+1)]
-    #         joined = ' '.join(ngram)
-    #
-    #         # if ngram has been encountered before, skip
-    #         if joined not in unique:
-    #             # else, new ngram to calculate the probability of
-    #             freq = self.corpus.count(joined) / num_grams
-    #             unique.add(joined)
-    #             ngrams.append((joined, freq))
-    #             # word is element of interest (c)
-    #             # hist is list of preceding words [c-1, c-2, ..., c-n+1]
-    #             word, hist = ngram[-1], list(reversed(ngram[:-1]))
-    #
-    #     self.ngrams[n] = sorted(ngrams, key=lambda x: -x[1])
 
     def parse_ngrams(self, n: int) -> None:
+        """Driver for _parse_ngrams; parses ngrams from 1 to n (inclusive)."""
+        for ngram_length in range(1, n+1):
+            self._parse_ngrams(ngram_length)
+
+    def _parse_ngrams(self, n: int) -> None:
         """Updates ngram dict with probabilities for the given n.
 
         :param n: 1 = unigram, 2 = bigram, 3 = trigram, ...
-        :return:
+        :return: None
         """
         # create table entry for this n (eg entries in ngrams[1] are unigrams)
         self.ngrams[n]: dict = {}
@@ -83,7 +80,7 @@ class NGram:
                 )
 
     def generate(self, numwd: int=20, numsq: int=10) -> List[str]:
-        """Generates numsq sentences of numwd words.
+        """Generates numsq sentences (sequences) of numwd words.
 
         :param numwd: number of words to generate per sentence
         :param numsq: number of sentences to generate
@@ -109,6 +106,7 @@ class NGram:
 
             sequences.append(' '.join(sequence))
 
+        self.sentences = sequences
         return sequences
 
     def roulette_selector(self, seq: List[str]=None) -> str:
@@ -178,6 +176,40 @@ class NGram:
     def extend_corpus(self, ext: str):
         # TODO recalculate all stats
         pass
+
+    def write_ngrams(self, pfile):
+        with open(pfile, "w") as f:
+            f.write("{: <20} | {: <20} | {: <20} | {: >20}".format(
+                "TOKEN 1", "TOKEN 2", "TOKEN 3", "PROBABILITY"
+            ))
+
+            for n, grams in self.ngrams.items():
+                if n == 3:
+                    for w1, grams_w1 in self.ngrams[n].items():
+                        for w2, grams_w2 in self.ngrams[n][w1].items():
+                            for w3, grams_w3 in self.ngrams[n][w1][w2].items():
+                                f.write(
+                                    "{: =20} | {: =20} | {: =20} | {: >20}\n"
+                                        .format(w1, w2, w3, grams_w3)
+                                )
+                elif n == 2:
+                    for w1, grams_w1 in self.ngrams[n].items():
+                        for w2, grams_w2 in self.ngrams[n][w1].items():
+                            f.write(
+                                "{: =20} | {: =20} | {: =20} | {: >20}".format(
+                                    w1, w2, "", grams_w2)
+                            )
+                elif n == 1:
+                    for w1, grams_w1 in self.ngrams[n].items():
+                        f.write(
+                            "{: =20} | {: =20} | {: =20} | {: >20}".format(
+                                w1, "", "", grams_w1)
+                        )
+
+    def write_results(self, rfile):
+        with open(rfile, 'w') as f:
+            for sentence in self.sentences:
+                f.write(sentence + '\n')
 
     @classmethod
     def default_stops(cls) -> List[str]:
