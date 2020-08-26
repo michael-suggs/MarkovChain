@@ -117,10 +117,12 @@ class NGram:
         :param seq: the last 2 words (at most) in the generated sequence
         :return: a semi-randomly generated next word
         """
+        print(seq)
         seq = seq[-2:]  # reduce to last two elements (or less if shorter)
+        print(seq)
         # if empty list, pick a pseudorandom unigram
         if not seq:
-            return choice([(k,v) for k,v in self.ngrams[1].items()])
+            return choice([(k,v) for k,v in self.ngrams[1].items()])[0]
 
         # only one element; roulette select a likely applicable bigram
         elif len(seq) == 1:
@@ -131,6 +133,7 @@ class NGram:
             return next_word
 
         # else, consider applicable trigrams and roulette select one
+        # FIXME if ngrams[3][seq[0]][seq[1]] doesn't exist, handle
         else:
             options = sorted([tuple([k,v]) for k,v in
                               self.ngrams[3][seq[0]][seq[1]].items()],
@@ -181,7 +184,7 @@ class NGram:
 
     def write_ngrams(self, pfile):
         with open(pfile, "w") as f:
-            f.write("{: <20} | {: <20} | {: <20} | {: >20}".format(
+            f.write("{: <20} | {: <20} | {: <20} | {: >20}\n".format(
                 "TOKEN 1", "TOKEN 2", "TOKEN 3", "PROBABILITY"
             ))
 
@@ -191,20 +194,20 @@ class NGram:
                         for w2, grams_w2 in self.ngrams[n][w1].items():
                             for w3, grams_w3 in self.ngrams[n][w1][w2].items():
                                 f.write(
-                                    "{: =20} | {: =20} | {: =20} | {: >20}\n"
+                                    "{: <20} | {: <20} | {: <20} | {: >20}\n"
                                         .format(w1, w2, w3, grams_w3)
                                 )
                 elif n == 2:
                     for w1, grams_w1 in self.ngrams[n].items():
                         for w2, grams_w2 in self.ngrams[n][w1].items():
                             f.write(
-                                "{: =20} | {: =20} | {: =20} | {: >20}".format(
+                                "{: <20} | {: <20} | {: <20} | {: >20}\n".format(
                                     w1, w2, "", grams_w2)
                             )
                 elif n == 1:
                     for w1, grams_w1 in self.ngrams[n].items():
                         f.write(
-                            "{: =20} | {: =20} | {: =20} | {: >20}".format(
+                            "{: <20} | {: <20} | {: <20} | {: >20}\n".format(
                                 w1, "", "", grams_w1)
                         )
 
@@ -231,14 +234,11 @@ class NGram:
         :return: base case returns val; else, the dict constructed on unwinding
         """
         # if no more keys, at the end (beginning) of ngram; assign prob.
-        print("keys: {}".format(keys))
-        print(d)
 
         if not keys:
             return val
         # word has been encountered before; pass its dict through to preserve
         elif keys[0] in d.keys():
-            print(d[keys[0]])
             d[keys[0]] = cls._nest_dict(d[keys[0]], keys[1:], val)
             return d
         # word has not been seen in this sequence; pass through blank dict
@@ -264,10 +264,13 @@ class NGram:
         :param stops: list of stopwords to remove
         :return: string of all processed docs concatenated together
         """
+        # FIXME remove punctuation and markers from string 'w'
         processed = ' '.join([
-            ' '.join(
-                w.lower() for w in t.split(' ') if w.lower() not in stops
-                and w.lower() not in string.punctuation
+            ' '.join(list(filter(
+                lambda x: x not in stops,
+                [''.join([c.lower() for c in w.strip()
+                          if c not in string.punctuation])
+                 for w in t.split(' ')]))
             ) for t in docs
         ])
         return processed
