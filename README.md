@@ -1,4 +1,4 @@
-# Question 3: Markov Chains
+# Markov Chain Ngram-Based Text Generator
 
 
 ## Libraries
@@ -30,11 +30,11 @@ Note that `python3` should be exchanged to direct to a Python 3.6+ interpreter p
 2. If text files in the provided directories are not cleaned, this can be done automatically by providing the following additional argument to step 3.
     - `-p` or `--preprocess` will ensure the project header and license text are removed before processing.
 3. Call `python3 MarkovChain.py` with the following positional arguments (in order):
-    - `AUTH-DIR-1`
-    - `AUTH-DIR-2`
-    - `PROB-FILE-1`
-    - `PROB-FILE-2`
-    - `RESULT-FILE`
+    - `AUTH-DIR-1`: Directory of the first author's source material.
+    - `AUTH-DIR-2`: Directory of the second author's source material.
+    - `PROB-FILE-1`: Path to the file that will store the first author's ngram probabilities.
+    - `PROB-FILE-2`: Path to the file that will store the second author's ngram probabilities.
+    - `RESULT-FILE`: Path to the file that will store the generated sentences.
     - _Optional:_ `-p` or `--preprocess`
 
 
