@@ -74,10 +74,11 @@ class NGram:
                 # word is element of interest (c)
                 # hist is list of preceding words [c-1, c-2, ..., c-n+1]
                 word, hist = ngram[-1], list(reversed(ngram[:-1]))
+                seq = list(reversed(ngram))
 
                 # build table s.t. ngrams[n][word][c-1][...] has value freq
                 self.ngrams[n] = self._nest_dict(
-                    self.ngrams[n], hist, freq
+                    self.ngrams[n], seq, freq
                 )
 
     def generate(self, numwd: int=20, numsq: int=10) -> List[str]:
@@ -119,7 +120,7 @@ class NGram:
         seq = seq[-2:]  # reduce to last two elements (or less if shorter)
         # if empty list, pick a pseudorandom unigram
         if not seq:
-            return choice(list(self.ngrams[1]))
+            return choice([(k,v) for k,v in self.ngrams[1].items()])
 
         # only one element; roulette select a likely applicable bigram
         elif len(seq) == 1:
@@ -132,7 +133,7 @@ class NGram:
         # else, consider applicable trigrams and roulette select one
         else:
             options = sorted([tuple([k,v]) for k,v in
-                              self.ngrams[2][seq[0]][seq[1]].items()],
+                              self.ngrams[3][seq[0]][seq[1]].items()],
                              key=lambda x: -x[1])
             next_word = self._roulette_selector(options)
             return next_word
@@ -230,7 +231,6 @@ class NGram:
         :return: base case returns val; else, the dict constructed on unwinding
         """
         # if no more keys, at the end (beginning) of ngram; assign prob.
-        # TODO update value if terminal (at n)
         print("keys: {}".format(keys))
         print(d)
 
@@ -238,6 +238,7 @@ class NGram:
             return val
         # word has been encountered before; pass its dict through to preserve
         elif keys[0] in d.keys():
+            print(d[keys[0]])
             d[keys[0]] = cls._nest_dict(d[keys[0]], keys[1:], val)
             return d
         # word has not been seen in this sequence; pass through blank dict
