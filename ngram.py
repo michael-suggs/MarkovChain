@@ -35,7 +35,7 @@ class NGram:
         # TODO doc me!
         self.stops: List[str] = stops if stops is not None \
             else self.default_stops()
-        self.corpus: str = self.stringify_docs(text, self.stops)
+        self.corpus: str = self.stringify_docs(text[0], self.stops)
         self.ngrams: dict = {}
 
     def parse_ngrams(self, n: int) -> None:
@@ -50,6 +50,7 @@ class NGram:
         :return: None
         """
         # create table entry for this n (eg entries in ngrams[1] are unigrams)
+        # TODO move dict init to separate method
         self.ngrams[n]: dict = {}
         processed: List[str] = self.corpus.split(' ')
         num_words: int = len(processed)
@@ -75,8 +76,8 @@ class NGram:
                 word, hist = ngram[-1], list(reversed(ngram[:-1]))
 
                 # build table s.t. ngrams[n][word][c-1][...] has value freq
-                self.ngrams[n][word] = self._nest_dict(
-                    self.ngrams[n][word], hist, freq
+                self.ngrams[n] = self._nest_dict(
+                    self.ngrams[n], hist, freq
                 )
 
     def generate(self, numwd: int=20, numsq: int=10) -> List[str]:
@@ -229,16 +230,20 @@ class NGram:
         :return: base case returns val; else, the dict constructed on unwinding
         """
         # if no more keys, at the end (beginning) of ngram; assign prob.
+        # TODO update value if terminal (at n)
+        print("keys: {}".format(keys))
+        print(d)
+
         if not keys:
             return val
         # word has been encountered before; pass its dict through to preserve
         elif keys[0] in d.keys():
             d[keys[0]] = cls._nest_dict(d[keys[0]], keys[1:], val)
-            return d[keys[0]]
+            return d
         # word has not been seen in this sequence; pass through blank dict
         else:
             d[keys[0]] = cls._nest_dict({}, keys[1:], val)
-            return d[keys[0]]
+            return d
 
     @classmethod
     def stringify_docs(cls, docs: List[str], stops: List[str]) -> str:
